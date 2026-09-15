@@ -15,7 +15,13 @@ pipeline {
             }
         }
 
-        stage('List Docker Images') {
+        stage('Verify Image') {
+            steps {
+                sh 'docker image inspect jenkins-docker-demo:latest'
+            }
+        }
+
+        stage('List Images') {
             steps {
                 sh 'docker images'
             }
