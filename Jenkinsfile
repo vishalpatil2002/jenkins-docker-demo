@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    environment {
+        IMAGE_NAME = 'YOUR_USERNAME/jenkins-docker-demo'
+    }
+
     stages {
 
         stage('Check Docker') {
@@ -11,19 +15,31 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t jenkins-docker-demo:latest .'
+                sh 'docker build -t ${IMAGE_NAME}:${BUILD_NUMBER} .'
             }
         }
 
-        stage('Verify Image') {
+        stage('Docker Login and Push') {
             steps {
-                sh 'docker image inspect jenkins-docker-demo:latest'
-            }
-        }
 
-        stage('List Images') {
-            steps {
-                sh 'docker images'
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'dockerhub-creds',
+                        usernameVariable: 'DOCKER_USER',
+                        passwordVariable: 'DOCKER_PASS'
+                    )
+                ]) {
+
+                    sh '''
+                        echo "$DOCKER_PASS" | docker login \
+                            --username "$DOCKER_USER" \
+                            --password-stdin
+
+                        docker push ${IMAGE_NAME}:${BUILD_NUMBER}
+
+                        docker logout
+                    '''
+                }
             }
         }
     }
