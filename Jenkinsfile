@@ -15,11 +15,24 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t ${IMAGE_NAME}:${BUILD_NUMBER} .'
+                sh '''
+                    docker build \
+                        -t ${IMAGE_NAME}:${BUILD_NUMBER} \
+                        -t ${IMAGE_NAME}:latest \
+                        .
+                '''
             }
         }
 
-        stage('Docker Login and Push') {
+        stage('Verify Image') {
+            steps {
+                sh '''
+                    docker image inspect ${IMAGE_NAME}:${BUILD_NUMBER}
+                '''
+            }
+        }
+
+        stage('Push to Docker Hub') {
             steps {
 
                 withCredentials([
@@ -36,11 +49,26 @@ pipeline {
                             --password-stdin
 
                         docker push ${IMAGE_NAME}:${BUILD_NUMBER}
+                        docker push ${IMAGE_NAME}:latest
 
                         docker logout
                     '''
                 }
             }
+        }
+    }
+
+    post {
+        success {
+            echo 'Docker image pushed successfully'
+        }
+
+        failure {
+            echo 'Docker pipeline failed'
+        }
+
+        always {
+            echo 'Pipeline finished'
         }
     }
 }
